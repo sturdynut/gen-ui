@@ -1,0 +1,667 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "https://genui.dev/schema/1.0/genui.json",
+  "title": "GenUI 1.0",
+  "description": "JSON Schema for the GenUI specification v1.0",
+  "type": "object",
+  "required": ["genui", "root"],
+  "additionalProperties": false,
+  "properties": {
+    "genui": {
+      "type": "string",
+      "const": "1.0",
+      "description": "GenUI spec version. Must be \"1.0\"."
+    },
+    "root": {
+      "$ref": "#/$defs/Component"
+    }
+  },
+
+  "$defs": {
+
+    "Component": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" }
+      },
+      "oneOf": [
+        { "$ref": "#/$defs/StackComponent" },
+        { "$ref": "#/$defs/GridComponent" },
+        { "$ref": "#/$defs/SectionComponent" },
+        { "$ref": "#/$defs/TextComponent" },
+        { "$ref": "#/$defs/HeadingComponent" },
+        { "$ref": "#/$defs/BadgeComponent" },
+        { "$ref": "#/$defs/MetricComponent" },
+        { "$ref": "#/$defs/ImageComponent" },
+        { "$ref": "#/$defs/DividerComponent" },
+        { "$ref": "#/$defs/CodeComponent" },
+        { "$ref": "#/$defs/MarkdownComponent" },
+        { "$ref": "#/$defs/ButtonComponent" },
+        { "$ref": "#/$defs/InputComponent" },
+        { "$ref": "#/$defs/SelectComponent" },
+        { "$ref": "#/$defs/ToggleComponent" },
+        { "$ref": "#/$defs/SliderComponent" },
+        { "$ref": "#/$defs/FormComponent" },
+        { "$ref": "#/$defs/CardComponent" },
+        { "$ref": "#/$defs/ListComponent" },
+        { "$ref": "#/$defs/TableComponent" },
+        { "$ref": "#/$defs/TabsComponent" },
+        { "$ref": "#/$defs/AccordionComponent" },
+        { "$ref": "#/$defs/DialogComponent" },
+        { "$ref": "#/$defs/SpinnerComponent" },
+        { "$ref": "#/$defs/EmptyComponent" },
+        { "$ref": "#/$defs/ErrorComponent" },
+        { "$ref": "#/$defs/ExtensionComponent" }
+      ]
+    },
+
+    "Aria": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label":       { "type": "string" },
+        "describedby": { "type": "string" },
+        "role":        { "type": "string" },
+        "live": {
+          "type": "string",
+          "enum": ["polite", "assertive"]
+        }
+      }
+    },
+
+    "Action": {
+      "oneOf": [
+        { "$ref": "#/$defs/LlmAction" },
+        { "$ref": "#/$defs/LocalAction" }
+      ]
+    },
+
+    "LlmAction": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "llm" },
+        "payload": { "type": "object" },
+        "context": {
+          "type": "string",
+          "enum": ["none", "spec", "custom"],
+          "default": "none"
+        }
+      }
+    },
+
+    "LocalAction": {
+      "type": "object",
+      "required": ["type", "event"],
+      "additionalProperties": false,
+      "properties": {
+        "type":   { "type": "string", "const": "local" },
+        "event":  { "type": "string" },
+        "target": { "type": "string" }
+      }
+    },
+
+    "Validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required":  { "type": "boolean" },
+        "min":       { "type": "number" },
+        "max":       { "type": "number" },
+        "minLength": { "type": "integer", "minimum": 0 },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "pattern": {
+          "type": "string",
+          "description": "\"email\", \"url\", \"phone\", or a regex string wrapped in /slashes/."
+        },
+        "message": { "type": "string" }
+      }
+    },
+
+    "Gap": {
+      "type": "string",
+      "enum": ["none", "sm", "md", "lg"]
+    },
+
+    "Variant": {
+      "type": "string",
+      "enum": ["default", "primary", "secondary", "success", "warning", "danger", "ghost"]
+    },
+
+    "Size": {
+      "type": "string",
+      "enum": ["sm", "md", "lg"]
+    },
+
+    "SelectOption": {
+      "type": "object",
+      "required": ["value", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "string" },
+        "label": { "type": "string" }
+      }
+    },
+
+    "TableColumn": {
+      "type": "object",
+      "required": ["key", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "key":   { "type": "string" },
+        "label": { "type": "string" },
+        "width": { "type": "string" }
+      }
+    },
+
+    "TabItem": {
+      "type": "object",
+      "required": ["label", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "label":    { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" }
+        }
+      }
+    },
+
+    "AccordionItem": {
+      "type": "object",
+      "required": ["title", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "title":       { "type": "string" },
+        "defaultOpen": { "type": "boolean", "default": false },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" }
+        }
+      }
+    },
+
+    "StackComponent": {
+      "type": "object",
+      "required": ["type", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "stack" },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" },
+        "direction": {
+          "type": "string",
+          "enum": ["vertical", "horizontal"],
+          "default": "vertical"
+        },
+        "gap":   { "$ref": "#/$defs/Gap" },
+        "align": {
+          "type": "string",
+          "enum": ["start", "center", "end", "stretch"],
+          "default": "start"
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "GridComponent": {
+      "type": "object",
+      "required": ["type", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "grid" },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" },
+        "columns": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "string", "const": "auto" }
+          ],
+          "default": "auto"
+        },
+        "gap": { "$ref": "#/$defs/Gap" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "SectionComponent": {
+      "type": "object",
+      "required": ["type", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "type":        { "type": "string", "const": "section" },
+        "id":          { "type": "string" },
+        "aria":        { "$ref": "#/$defs/Aria" },
+        "title":       { "type": "string" },
+        "description": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "TextComponent": {
+      "type": "object",
+      "required": ["type", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "text" },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" },
+        "content": { "type": "string" },
+        "variant": {
+          "type": "string",
+          "enum": ["default", "muted", "strong", "emphasis"],
+          "default": "default"
+        }
+      }
+    },
+
+    "HeadingComponent": {
+      "type": "object",
+      "required": ["type", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "type": "string", "const": "heading" },
+        "id":      { "type": "string" },
+        "aria":    { "$ref": "#/$defs/Aria" },
+        "content": { "type": "string" },
+        "level":   { "type": "integer", "minimum": 1, "maximum": 6, "default": 2 }
+      }
+    },
+
+    "BadgeComponent": {
+      "type": "object",
+      "required": ["type", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "type": "string", "const": "badge" },
+        "id":      { "type": "string" },
+        "aria":    { "$ref": "#/$defs/Aria" },
+        "label":   { "type": "string" },
+        "variant": { "$ref": "#/$defs/Variant" }
+      }
+    },
+
+    "MetricComponent": {
+      "type": "object",
+      "required": ["type", "label", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "type":  { "type": "string", "const": "metric" },
+        "id":    { "type": "string" },
+        "aria":  { "$ref": "#/$defs/Aria" },
+        "label": { "type": "string" },
+        "value": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+        "delta": { "type": "string" },
+        "deltaVariant": {
+          "type": "string",
+          "enum": ["positive", "negative", "neutral"]
+        }
+      }
+    },
+
+    "ImageComponent": {
+      "type": "object",
+      "required": ["type", "src", "alt"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "type": "string", "const": "image" },
+        "id":      { "type": "string" },
+        "aria":    { "$ref": "#/$defs/Aria" },
+        "src":     { "type": "string" },
+        "alt":     { "type": "string" },
+        "caption": { "type": "string" }
+      }
+    },
+
+    "DividerComponent": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "divider" },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" }
+      }
+    },
+
+    "CodeComponent": {
+      "type": "object",
+      "required": ["type", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":     { "type": "string", "const": "code" },
+        "id":       { "type": "string" },
+        "aria":     { "$ref": "#/$defs/Aria" },
+        "content":  { "type": "string" },
+        "language": { "type": "string" }
+      }
+    },
+
+    "MarkdownComponent": {
+      "type": "object",
+      "required": ["type", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "type": "string", "const": "markdown" },
+        "id":      { "type": "string" },
+        "aria":    { "$ref": "#/$defs/Aria" },
+        "content": { "type": "string" }
+      }
+    },
+
+    "ButtonComponent": {
+      "type": "object",
+      "required": ["type", "label", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "type":     { "type": "string", "const": "button" },
+        "id":       { "type": "string" },
+        "aria":     { "$ref": "#/$defs/Aria" },
+        "label":    { "type": "string" },
+        "variant":  { "$ref": "#/$defs/Variant" },
+        "size":     { "$ref": "#/$defs/Size" },
+        "disabled": { "type": "boolean", "default": false },
+        "action":   { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "InputComponent": {
+      "type": "object",
+      "required": ["type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "type":        { "type": "string", "const": "input" },
+        "id":          { "type": "string" },
+        "aria":        { "$ref": "#/$defs/Aria" },
+        "name":        { "type": "string" },
+        "label":       { "type": "string" },
+        "placeholder": { "type": "string" },
+        "inputType": {
+          "type": "string",
+          "enum": ["text", "email", "number", "password", "tel", "url"],
+          "default": "text"
+        },
+        "value":      { "type": "string" },
+        "validation": { "$ref": "#/$defs/Validation" },
+        "action":     { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "SelectComponent": {
+      "type": "object",
+      "required": ["type", "name", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "select" },
+        "id":         { "type": "string" },
+        "aria":       { "$ref": "#/$defs/Aria" },
+        "name":       { "type": "string" },
+        "label":      { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SelectOption" },
+          "minItems": 1
+        },
+        "value":      { "type": "string" },
+        "validation": { "$ref": "#/$defs/Validation" },
+        "action":     { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "ToggleComponent": {
+      "type": "object",
+      "required": ["type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "toggle" },
+        "id":         { "type": "string" },
+        "aria":       { "$ref": "#/$defs/Aria" },
+        "name":       { "type": "string" },
+        "label":      { "type": "string" },
+        "checked":    { "type": "boolean", "default": false },
+        "validation": { "$ref": "#/$defs/Validation" },
+        "action":     { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "SliderComponent": {
+      "type": "object",
+      "required": ["type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "type":   { "type": "string", "const": "slider" },
+        "id":     { "type": "string" },
+        "aria":   { "$ref": "#/$defs/Aria" },
+        "name":   { "type": "string" },
+        "label":  { "type": "string" },
+        "min":    { "type": "number", "default": 0 },
+        "max":    { "type": "number", "default": 100 },
+        "step":   { "type": "number", "default": 1 },
+        "value":  { "type": "number" },
+        "action": { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "FormComponent": {
+      "type": "object",
+      "required": ["type", "children", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "type":     { "type": "string", "const": "form" },
+        "id":       { "type": "string" },
+        "aria":     { "$ref": "#/$defs/Aria" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" },
+          "minItems": 1
+        },
+        "submitLabel": { "type": "string", "default": "Submit" },
+        "validationStrategy": {
+          "type": "string",
+          "enum": ["on-submit", "on-blur", "on-change"],
+          "default": "on-submit"
+        },
+        "action": { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "CardComponent": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type":        { "type": "string", "const": "card" },
+        "id":          { "type": "string" },
+        "aria":        { "$ref": "#/$defs/Aria" },
+        "title":       { "type": "string" },
+        "description": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" }
+        },
+        "action": { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "ListComponent": {
+      "type": "object",
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "type": "string", "const": "list" },
+        "id":      { "type": "string" },
+        "aria":    { "$ref": "#/$defs/Aria" },
+        "ordered": { "type": "boolean", "default": false },
+        "items": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "$ref": "#/$defs/Component" }
+            ]
+          },
+          "minItems": 1
+        }
+      }
+    },
+
+    "TableComponent": {
+      "type": "object",
+      "required": ["type", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "type":    { "type": "string", "const": "table" },
+        "id":      { "type": "string" },
+        "aria":    { "$ref": "#/$defs/Aria" },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TableColumn" },
+          "minItems": 1
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "number" }
+              ]
+            }
+          }
+        },
+        "action": { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "TabsComponent": {
+      "type": "object",
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "tabs" },
+        "id":         { "type": "string" },
+        "aria":       { "$ref": "#/$defs/Aria" },
+        "defaultTab": { "type": "integer", "minimum": 0, "default": 0 },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TabItem" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "AccordionComponent": {
+      "type": "object",
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "accordion" },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/AccordionItem" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "DialogComponent": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type":        { "type": "string", "const": "dialog" },
+        "id":          { "type": "string" },
+        "aria":        { "$ref": "#/$defs/Aria" },
+        "title":       { "type": "string" },
+        "description": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Component" }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ButtonComponent" }
+        }
+      }
+    },
+
+    "SpinnerComponent": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type":  { "type": "string", "const": "spinner" },
+        "id":    { "type": "string" },
+        "aria":  { "$ref": "#/$defs/Aria" },
+        "label": { "type": "string" }
+      }
+    },
+
+    "EmptyComponent": {
+      "type": "object",
+      "required": ["type", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "type":        { "type": "string", "const": "empty" },
+        "id":          { "type": "string" },
+        "aria":        { "$ref": "#/$defs/Aria" },
+        "title":       { "type": "string" },
+        "description": { "type": "string" },
+        "action":      { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "ErrorComponent": {
+      "type": "object",
+      "required": ["type", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "type":        { "type": "string", "const": "error" },
+        "id":          { "type": "string" },
+        "aria":        { "$ref": "#/$defs/Aria" },
+        "title":       { "type": "string" },
+        "description": { "type": "string" },
+        "action":      { "$ref": "#/$defs/Action" }
+      }
+    },
+
+    "ExtensionComponent": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^x:[a-z][a-z0-9-]*$",
+          "description": "Extension component type. Must be prefixed with \"x:\"."
+        },
+        "id":   { "type": "string" },
+        "aria": { "$ref": "#/$defs/Aria" },
+        "props": {
+          "type": "object",
+          "description": "Arbitrary props passed to the registered renderer component."
+        }
+      },
+      "additionalProperties": true
+    }
+
+  }
+}

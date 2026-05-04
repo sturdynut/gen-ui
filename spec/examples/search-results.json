@@ -1,0 +1,84 @@
+{
+  "genui": "1.0",
+  "root": {
+    "type": "stack",
+    "direction": "vertical",
+    "gap": "md",
+    "aria": { "label": "Search results", "live": "polite" },
+    "children": [
+      {
+        "type": "section",
+        "title": "Results for "react state management"",
+        "description": "3 results",
+        "children": [
+          {
+            "type": "stack",
+            "direction": "vertical",
+            "gap": "sm",
+            "children": [
+              {
+                "type": "card",
+                "title": "Zustand — Bear necessities for state management",
+                "description": "A small, fast, and scalable state manager. Zustand has a comfy API based on hooks, isn't boilerplatey, and doesn't have an opinionated structure.",
+                "action": {
+                  "type": "llm",
+                  "payload": { "selected": "zustand", "intent": "learn-more" },
+                  "context": "none"
+                }
+              },
+              {
+                "type": "card",
+                "title": "Jotai — Primitive and flexible state management",
+                "description": "Jotai takes an atomic approach to global React state management. Build state by combining atoms, and renders are automatically optimized based on atom dependency.",
+                "action": {
+                  "type": "llm",
+                  "payload": { "selected": "jotai", "intent": "learn-more" },
+                  "context": "none"
+                }
+              },
+              {
+                "type": "card",
+                "title": "Redux Toolkit — The official, opinionated Redux toolset",
+                "description": "The official recommended approach for writing Redux logic. Includes utilities to simplify common Redux use cases and reduce boilerplate.",
+                "action": {
+                  "type": "llm",
+                  "payload": { "selected": "redux-toolkit", "intent": "learn-more" },
+                  "context": "none"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "stack",
+        "direction": "horizontal",
+        "gap": "sm",
+        "align": "center",
+        "children": [
+          {
+            "type": "button",
+            "label": "Compare all three",
+            "variant": "primary",
+            "aria": { "label": "Compare Zustand, Jotai, and Redux Toolkit" },
+            "action": {
+              "type": "llm",
+              "payload": { "intent": "compare", "libraries": ["zustand", "jotai", "redux-toolkit"] },
+              "context": "spec"
+            }
+          },
+          {
+            "type": "button",
+            "label": "Refine search",
+            "variant": "ghost",
+            "action": {
+              "type": "llm",
+              "payload": { "intent": "refine-search" },
+              "context": "spec"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
