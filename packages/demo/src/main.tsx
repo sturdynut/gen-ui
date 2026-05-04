@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 // GenUI default design tokens (CSS custom properties)
-import '../../../react/src/theme.css';
+import '../../react/src/theme.css';
 import './index.css';
 
 const root = document.getElementById('root');
