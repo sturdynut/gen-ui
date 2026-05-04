@@ -1,0 +1,68 @@
+{
+  "genui": "1.0",
+  "root": {
+    "type": "card",
+    "aria": { "label": "Current weather for San Francisco" },
+    "children": [
+      {
+        "type": "stack",
+        "direction": "horizontal",
+        "align": "center",
+        "gap": "md",
+        "children": [
+          {
+            "type": "stack",
+            "direction": "vertical",
+            "gap": "sm",
+            "children": [
+              { "type": "heading", "content": "San Francisco", "level": 3 },
+              { "type": "text", "content": "Monday, 4 May 2026", "variant": "muted" }
+            ]
+          },
+          {
+            "type": "badge",
+            "label": "Partly Cloudy",
+            "variant": "default"
+          }
+        ]
+      },
+      { "type": "divider" },
+      {
+        "type": "grid",
+        "columns": 3,
+        "gap": "md",
+        "children": [
+          {
+            "type": "metric",
+            "label": "Temperature",
+            "value": "62°F",
+            "delta": "-4° from yesterday",
+            "deltaVariant": "negative"
+          },
+          {
+            "type": "metric",
+            "label": "Humidity",
+            "value": "74%"
+          },
+          {
+            "type": "metric",
+            "label": "Wind",
+            "value": "12 mph"
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "label": "5-day forecast",
+        "variant": "ghost",
+        "size": "sm",
+        "aria": { "label": "View 5-day forecast for San Francisco" },
+        "action": {
+          "type": "llm",
+          "payload": { "request": "5-day forecast", "city": "San Francisco" },
+          "context": "none"
+        }
+      }
+    ]
+  }
+}

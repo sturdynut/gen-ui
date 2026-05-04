@@ -1,0 +1,107 @@
+{
+  "genui": "1.0",
+  "root": {
+    "type": "card",
+    "title": "Contact Us",
+    "description": "We'll get back to you within one business day.",
+    "children": [
+      {
+        "type": "form",
+        "validationStrategy": "on-blur",
+        "submitLabel": "Send message",
+        "action": {
+          "type": "llm",
+          "payload": { "intent": "submit-contact-form" },
+          "context": "spec"
+        },
+        "children": [
+          {
+            "type": "grid",
+            "columns": 2,
+            "gap": "md",
+            "children": [
+              {
+                "type": "input",
+                "name": "firstName",
+                "label": "First name",
+                "placeholder": "Jane",
+                "inputType": "text",
+                "aria": { "label": "First name" },
+                "validation": {
+                  "required": true,
+                  "minLength": 1,
+                  "maxLength": 50,
+                  "message": "First name is required."
+                }
+              },
+              {
+                "type": "input",
+                "name": "lastName",
+                "label": "Last name",
+                "placeholder": "Smith",
+                "inputType": "text",
+                "aria": { "label": "Last name" },
+                "validation": {
+                  "required": true,
+                  "minLength": 1,
+                  "maxLength": 50,
+                  "message": "Last name is required."
+                }
+              }
+            ]
+          },
+          {
+            "type": "input",
+            "name": "email",
+            "label": "Email address",
+            "placeholder": "jane@example.com",
+            "inputType": "email",
+            "aria": { "label": "Email address" },
+            "validation": {
+              "required": true,
+              "pattern": "email",
+              "message": "Please enter a valid email address."
+            }
+          },
+          {
+            "type": "select",
+            "name": "subject",
+            "label": "Subject",
+            "aria": { "label": "Subject" },
+            "options": [
+              { "value": "general",  "label": "General inquiry" },
+              { "value": "support",  "label": "Technical support" },
+              { "value": "billing",  "label": "Billing question" },
+              { "value": "feedback", "label": "Product feedback" }
+            ],
+            "validation": {
+              "required": true,
+              "message": "Please select a subject."
+            }
+          },
+          {
+            "type": "input",
+            "name": "message",
+            "label": "Message",
+            "placeholder": "How can we help?",
+            "inputType": "text",
+            "aria": { "label": "Message" },
+            "validation": {
+              "required": true,
+              "minLength": 10,
+              "maxLength": 1000,
+              "message": "Message must be between 10 and 1000 characters."
+            }
+          },
+          {
+            "type": "toggle",
+            "name": "subscribe",
+            "label": "Subscribe to product updates",
+            "checked": false,
+            "aria": { "label": "Subscribe to product updates" }
+          }
+        ]
+      }
+    ]
+  }
+}
