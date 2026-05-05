@@ -498,6 +498,22 @@ code {
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
 
+.streaming-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563eb;
+  animation: streaming-pulse 1s ease-in-out infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes streaming-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 @media (max-width: 768px) {
   .demo-layout {
     grid-template-columns: 1fr;

@@ -16,7 +16,7 @@ const SUGGESTIONS = [
 ];
 
 const WELCOME_SPEC = {
-  genui: '1.0' as const,
+  genui: '2.0' as const,
   root: {
     type: 'stack' as const,
     gap: 'lg' as const,
@@ -40,7 +40,7 @@ const WELCOME_SPEC = {
               {
                 type: 'card' as const,
                 title: '🧙 Wizard',
-                description: 'See multi-step forms and onboarding flows generated on the fly.',
+                description: 'See multi-step forms driven entirely by client-side state — no LLM per step.',
                 action: { type: 'local' as const, event: 'navigate', target: '/wizard' },
               },
               {
@@ -69,17 +69,17 @@ const WELCOME_SPEC = {
                 }],
               },
               {
-                title: 'Actions close the loop',
+                title: 'Spec streams progressively',
                 children: [{
                   type: 'markdown' as const,
-                  content: 'When you click a button or submit a form, the action payload is sent back to the LLM. The LLM is the reducer — it receives the action and returns a new spec. **The UI replaces itself.**',
+                  content: 'Tokens stream directly from the Anthropic API. A partial JSON parser closes open brackets on each chunk so the renderer shows content **as it arrives** — no spinner, just progressive disclosure.',
                 }],
               },
               {
-                title: 'Renderers are swappable',
+                title: 'State lives in the client, not the LLM',
                 children: [{
                   type: 'markdown' as const,
-                  content: 'The spec is framework-agnostic. `@genui/react` renders it today; a `@genui/vue` or `@genui/native` package could render the same spec in a different environment.',
+                  content: 'The spec declares a `state` block and uses `visibleIf` + local reducers (`inc-state`, `set-state`) for navigation and toggles. **Zero LLM round-trips for UI state changes.**',
                 }],
               },
             ],
@@ -112,8 +112,10 @@ export function Chat({ apiKey }: ChatProps) {
     }
   }, [spec]);
 
+  const busy = status === 'streaming';
+
   const submit = async (message: string) => {
-    if (!message.trim() || status === 'loading') return;
+    if (!message.trim() || busy) return;
     setInput('');
     await send(message.trim());
   };
@@ -137,7 +139,7 @@ export function Chat({ apiKey }: ChatProps) {
         <div className="demo-sidebar-header">
           <h2 className="demo-sidebar-title">Chat</h2>
           <p className="demo-sidebar-desc">
-            Ask anything. Every response is a GenUI spec rendered in real time.
+            Ask anything. Every response streams in as a GenUI spec rendered in real time.
           </p>
         </div>
 
@@ -150,16 +152,16 @@ export function Chat({ apiKey }: ChatProps) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={3}
-            disabled={status === 'loading'}
+            disabled={busy}
             aria-label="Chat input"
           />
           <div className="chat-form-actions">
             <button
               type="submit"
               className="chat-send"
-              disabled={!input.trim() || status === 'loading'}
+              disabled={!input.trim() || busy}
             >
-              {status === 'loading' ? 'Generating…' : 'Send →'}
+              {busy ? 'Streaming…' : 'Send →'}
             </button>
             {spec && (
               <button type="button" className="chat-reset" onClick={reset}>
@@ -187,8 +189,8 @@ export function Chat({ apiKey }: ChatProps) {
       <div className="demo-output" ref={outputRef}>
         <div className="demo-output-header">
           <span className="demo-output-label">
-            {status === 'loading'
-              ? '⏳ Generating spec…'
+            {busy
+              ? <><span className="streaming-dot" aria-hidden="true" />{' Streaming…'}</>
               : spec
               ? '✓ GenUI spec rendered'
               : '← Send a message to generate UI'}
@@ -196,23 +198,16 @@ export function Chat({ apiKey }: ChatProps) {
         </div>
 
         <div className="demo-output-body">
-          {status === 'loading' ? (
-            <div className="demo-loading">
-              <div className="demo-loading-ring" aria-hidden="true" />
-              <span>Asking Claude for a GenUI spec…</span>
-            </div>
-          ) : (
-            <GenUIRenderer
-              spec={displaySpec}
-              onAction={(action, formData, ctx) => {
-                if (action.type === 'local' && action.event === 'navigate' && action.target) {
-                  navigate(action.target);
-                  return;
-                }
-                handleAction(action, formData, ctx);
-              }}
-            />
-          )}
+          <GenUIRenderer
+            spec={displaySpec}
+            onAction={(action, formData, ctx) => {
+              if (action.type === 'local' && action.event === 'navigate' && action.target) {
+                navigate(action.target);
+                return;
+              }
+              handleAction(action, formData, ctx);
+            }}
+          />
         </div>
 
         <SpecViewer spec={spec} />

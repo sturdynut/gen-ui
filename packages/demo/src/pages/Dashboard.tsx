@@ -15,7 +15,7 @@ const SUGGESTIONS = [
 ];
 
 const WELCOME_SPEC = {
-  genui: '1.0' as const,
+  genui: '2.0' as const,
   root: {
     type: 'section' as const,
     title: 'Acme Corp Analytics',
@@ -74,8 +74,10 @@ export function Dashboard({ apiKey }: DashboardProps) {
 
   const displaySpec = spec ?? WELCOME_SPEC;
 
+  const busy = status === 'streaming';
+
   const submit = async (message: string) => {
-    if (!message.trim() || status === 'loading') return;
+    if (!message.trim() || busy) return;
     setInput('');
     await send(message.trim());
   };
@@ -105,12 +107,12 @@ export function Dashboard({ apiKey }: DashboardProps) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(input); } }}
             rows={3}
-            disabled={status === 'loading'}
+            disabled={busy}
             aria-label="Dashboard query"
           />
           <div className="chat-form-actions">
-            <button type="submit" className="chat-send" disabled={!input.trim() || status === 'loading'}>
-              {status === 'loading' ? 'Generating…' : 'Query →'}
+            <button type="submit" className="chat-send" disabled={!input.trim() || busy}>
+              {busy ? 'Streaming…' : 'Query →'}
             </button>
             {spec && <button type="button" className="chat-reset" onClick={reset}>Reset</button>}
           </div>
@@ -118,7 +120,7 @@ export function Dashboard({ apiKey }: DashboardProps) {
 
         <div className="demo-suggestions">
           <p className="demo-suggestions-label">Try asking:</p>
-          <PromptChips prompts={SUGGESTIONS} onSelect={s => void submit(s)} disabled={status === 'loading'} />
+          <PromptChips prompts={SUGGESTIONS} onSelect={s => void submit(s)} disabled={busy} />
         </div>
 
         {error && <div className="demo-error" role="alert"><strong>Error:</strong> {error}</div>}
@@ -133,19 +135,14 @@ export function Dashboard({ apiKey }: DashboardProps) {
       <div className="demo-output">
         <div className="demo-output-header">
           <span className="demo-output-label">
-            {status === 'loading' ? '⏳ Building dashboard…' : spec ? '✓ Dashboard rendered' : '← Run a query to see your dashboard'}
+            {busy
+              ? <><span className="streaming-dot" aria-hidden="true" />{' Streaming dashboard…'}</>
+              : spec ? '✓ Dashboard rendered' : '← Run a query to see your dashboard'}
           </span>
         </div>
 
         <div className="demo-output-body">
-          {status === 'loading' ? (
-            <div className="demo-loading">
-              <div className="demo-loading-ring" aria-hidden="true" />
-              <span>Generating dashboard spec…</span>
-            </div>
-          ) : (
-            <GenUIRenderer spec={displaySpec} onAction={handleAction} />
-          )}
+          <GenUIRenderer spec={displaySpec} onAction={handleAction} />
         </div>
 
         <SpecViewer spec={spec} />

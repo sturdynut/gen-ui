@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Action, GenUIRoot } from '@genui/core';
-import { LRUCache } from '@genui/core';
-import { callLLM, type ChatMessage } from '../lib/api';
+import { LRUCache, tryParsePartial, parseGenUIResponse } from '@genui/core';
+import { streamFromAnthropic, type ChatMessage } from '../lib/api';
 
-export type ChatStatus = 'idle' | 'loading' | 'error';
+export type ChatStatus = 'idle' | 'streaming' | 'error';
 
 export interface UseChatOptions {
   systemPrompt: string;
@@ -24,12 +24,10 @@ export interface UseChatReturn {
   reset: () => void;
 }
 
-// Module-level LRU cache — persists for the lifetime of the browser session.
-// Keyed by a hash of the system prompt prefix + serialized message history.
+// Module-level LRU cache — persists for the browser session.
 const specCache = new LRUCache<string, GenUIRoot>(50);
 
 function cacheKey(systemPrompt: string, messages: ChatMessage[]): string {
-  // Use the first 80 chars of systemPrompt as a namespace, then full message history.
   return `${systemPrompt.slice(0, 80)}||${JSON.stringify(messages)}`;
 }
 
@@ -39,9 +37,13 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatMessage[]>([]);
 
+  // Ref to allow aborting in-flight streams on reset
+  const abortRef = useRef<boolean>(false);
+
   const send = useCallback(
     async (userMessage: string) => {
-      setStatus('loading');
+      abortRef.current = false;
+      setStatus('streaming');
       setError(null);
       setSpec(null);
 
@@ -51,13 +53,12 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
       ];
       setHistory(nextHistory);
 
-      // Cache hit — skip the LLM entirely
+      // Cache hit — return instantly, no LLM call
       const key = cacheKey(systemPrompt, nextHistory);
       const cached = specCache.get(key);
       if (cached) {
         setSpec(cached);
         setStatus('idle');
-        // Still record the assistant message so the history is consistent
         setHistory([
           ...nextHistory,
           { role: 'assistant', content: JSON.stringify(cached) },
@@ -65,24 +66,47 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
         return;
       }
 
-      const result = await callLLM({ apiKey, systemPrompt, messages: nextHistory });
+      // Stream from Anthropic, updating the rendered spec on each chunk
+      let buffer = '';
+
+      try {
+        for await (const chunk of streamFromAnthropic({ apiKey, systemPrompt, messages: nextHistory })) {
+          if (abortRef.current) return;
+          buffer += chunk;
+
+          // Try to render whatever partial JSON is available
+          const partial = tryParsePartial(buffer);
+          if (partial) setSpec(partial);
+        }
+      } catch (err) {
+        if (abortRef.current) return;
+        const message = err instanceof Error ? err.message : 'Stream error';
+        setError(message);
+        setStatus('error');
+        return;
+      }
+
+      if (abortRef.current) return;
+
+      // Final parse and validation on the complete buffer
+      const result = parseGenUIResponse(buffer);
 
       if (result.ok) {
+        setSpec(result.spec);
+        setStatus('idle');
+
         const assistantContent = JSON.stringify(result.spec);
         const fullHistory: ChatMessage[] = [
           ...nextHistory,
           { role: 'assistant', content: assistantContent },
         ];
         setHistory(fullHistory);
-        setSpec(result.spec);
-        setStatus('idle');
 
-        // Cache the result keyed by the history AFTER the assistant reply,
-        // so repeated identical follow-ups also hit the cache.
+        // Cache under both the pre- and post-reply history keys
         specCache.set(key, result.spec);
         specCache.set(cacheKey(systemPrompt, fullHistory), result.spec);
       } else {
-        setError(result.errors[0] ?? 'Something went wrong');
+        setError(result.errors[0] ?? 'Invalid response from LLM');
         setStatus('error');
       }
     },
@@ -99,7 +123,6 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
       };
 
       let userMessage: string;
-
       if (action.context === 'spec' && contextPayload) {
         userMessage = JSON.stringify({ action: payload, currentSpec: contextPayload });
       } else {
@@ -112,6 +135,7 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
   );
 
   const reset = useCallback(() => {
+    abortRef.current = true;
     setSpec(null);
     setStatus('idle');
     setError(null);

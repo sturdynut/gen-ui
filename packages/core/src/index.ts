@@ -64,7 +64,7 @@ export type {
 export { checkVersion, validateSpec } from './validate';
 export type { VersionCheckResult, ValidationResult } from './validate';
 
-export { parseGenUIStream, parseGenUIResponse, readableStreamToIterable } from './parser';
+export { parseGenUIStream, parseGenUIResponse, readableStreamToIterable, tryParsePartial } from './parser';
 export type { StreamEvent } from './parser';
 
 export { StateStore } from './state';

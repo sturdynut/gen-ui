@@ -4,7 +4,7 @@ import { WIZARD_PROMPT } from '../prompts';
 import { SpecViewer } from '../components/SpecViewer';
 
 const WELCOME_SPEC = {
-  genui: '1.0' as const,
+  genui: '2.0' as const,
   root: {
     type: 'stack' as const,
     gap: 'lg' as const,
@@ -99,6 +99,7 @@ export function Wizard({ apiKey }: WizardProps) {
     apiKey,
   });
 
+  const busy = status === 'streaming';
   const displaySpec = spec ?? WELCOME_SPEC;
 
   return (
@@ -108,23 +109,23 @@ export function Wizard({ apiKey }: WizardProps) {
         <div className="demo-sidebar-header">
           <h2 className="demo-sidebar-title">Onboarding Wizard</h2>
           <p className="demo-sidebar-desc">
-            A multi-step onboarding flow generated entirely by the LLM — one spec per step.
-            Each form submission triggers the next step.
+            A 5-step onboarding flow generated in a single LLM call. Step navigation
+            runs entirely client-side via local state reducers — no LLM per step.
           </p>
         </div>
 
         <div className="demo-sidebar-info">
           <div className="info-item">
             <span className="info-dot info-dot--blue" />
-            <span>Step generated on demand</span>
+            <span>Full wizard in one LLM call</span>
           </div>
           <div className="info-item">
             <span className="info-dot info-dot--green" />
-            <span>Validation in spec, enforced by renderer</span>
+            <span>Next/Back via inc-state / dec-state reducers</span>
           </div>
           <div className="info-item">
             <span className="info-dot info-dot--purple" />
-            <span>Previous data flows forward via context</span>
+            <span>Validation enforced client-side from spec</span>
           </div>
         </div>
 
@@ -137,8 +138,8 @@ export function Wizard({ apiKey }: WizardProps) {
         {error && <div className="demo-error" role="alert"><strong>Error:</strong> {error}</div>}
 
         <div className="demo-data-note">
-          <p className="demo-data-note-label">🧙 System prompt</p>
-          <p>The LLM knows the full 5-step onboarding flow for "Launchpad" SaaS and generates each form step in response to the previous submission.</p>
+          <p className="demo-data-note-label">🧙 Architecture</p>
+          <p>The spec includes all 5 steps at once with <code>visibleIf</code> conditions. A <code>state: {'{"/step": 1}'}</code> block drives visibility. Next/Back buttons use local reducers.</p>
         </div>
       </aside>
 
@@ -146,23 +147,16 @@ export function Wizard({ apiKey }: WizardProps) {
       <div className="demo-output">
         <div className="demo-output-header">
           <span className="demo-output-label">
-            {status === 'loading'
-              ? '⏳ Generating next step…'
+            {busy
+              ? <><span className="streaming-dot" aria-hidden="true" />{' Streaming wizard…'}</>
               : spec
-              ? '✓ Step rendered — fill the form and submit'
+              ? '✓ Wizard ready — navigate steps locally'
               : '← Click "Start onboarding" to begin'}
           </span>
         </div>
 
         <div className="demo-output-body">
-          {status === 'loading' ? (
-            <div className="demo-loading">
-              <div className="demo-loading-ring" aria-hidden="true" />
-              <span>Generating next step…</span>
-            </div>
-          ) : (
-            <GenUIRenderer spec={displaySpec} onAction={handleAction} />
-          )}
+          <GenUIRenderer spec={displaySpec} onAction={handleAction} />
         </div>
 
         <SpecViewer spec={spec} />
