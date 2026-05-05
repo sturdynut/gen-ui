@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Action, GenUIRoot } from '@genui/core';
+import { LRUCache } from '@genui/core';
 import { callLLM, type ChatMessage } from '../lib/api';
 
 export type ChatStatus = 'idle' | 'loading' | 'error';
@@ -23,6 +24,15 @@ export interface UseChatReturn {
   reset: () => void;
 }
 
+// Module-level LRU cache — persists for the lifetime of the browser session.
+// Keyed by a hash of the system prompt prefix + serialized message history.
+const specCache = new LRUCache<string, GenUIRoot>(50);
+
+function cacheKey(systemPrompt: string, messages: ChatMessage[]): string {
+  // Use the first 80 chars of systemPrompt as a namespace, then full message history.
+  return `${systemPrompt.slice(0, 80)}||${JSON.stringify(messages)}`;
+}
+
 export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn {
   const [spec, setSpec] = useState<GenUIRoot | null>(null);
   const [status, setStatus] = useState<ChatStatus>('idle');
@@ -41,15 +51,36 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
       ];
       setHistory(nextHistory);
 
+      // Cache hit — skip the LLM entirely
+      const key = cacheKey(systemPrompt, nextHistory);
+      const cached = specCache.get(key);
+      if (cached) {
+        setSpec(cached);
+        setStatus('idle');
+        // Still record the assistant message so the history is consistent
+        setHistory([
+          ...nextHistory,
+          { role: 'assistant', content: JSON.stringify(cached) },
+        ]);
+        return;
+      }
+
       const result = await callLLM({ apiKey, systemPrompt, messages: nextHistory });
 
       if (result.ok) {
-        // Store the raw JSON string as the assistant message so the LLM
-        // sees its own previous outputs in context
         const assistantContent = JSON.stringify(result.spec);
-        setHistory([...nextHistory, { role: 'assistant', content: assistantContent }]);
+        const fullHistory: ChatMessage[] = [
+          ...nextHistory,
+          { role: 'assistant', content: assistantContent },
+        ];
+        setHistory(fullHistory);
         setSpec(result.spec);
         setStatus('idle');
+
+        // Cache the result keyed by the history AFTER the assistant reply,
+        // so repeated identical follow-ups also hit the cache.
+        specCache.set(key, result.spec);
+        specCache.set(cacheKey(systemPrompt, fullHistory), result.spec);
       } else {
         setError(result.errors[0] ?? 'Something went wrong');
         setStatus('error');
@@ -62,7 +93,6 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
     (action: Action, formData?: Record<string, unknown>, contextPayload?: unknown) => {
       if (action.type !== 'llm') return;
 
-      // Build a user message from the action payload + form data + context
       const payload: Record<string, unknown> = {
         ...(action.payload ?? {}),
         ...(formData ?? {}),
@@ -71,11 +101,7 @@ export function useChat({ systemPrompt, apiKey }: UseChatOptions): UseChatReturn
       let userMessage: string;
 
       if (action.context === 'spec' && contextPayload) {
-        // Include the current spec in the message so the LLM can see the full state
-        userMessage = JSON.stringify({
-          action: payload,
-          currentSpec: contextPayload,
-        });
+        userMessage = JSON.stringify({ action: payload, currentSpec: contextPayload });
       } else {
         userMessage = JSON.stringify(payload);
       }

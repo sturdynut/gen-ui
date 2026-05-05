@@ -16,6 +16,7 @@ export type {
   AriaProps,
   LlmAction,
   LocalAction,
+  LocalReducer,
   Action,
   ValidationRules,
   SelectOption,
@@ -65,3 +66,7 @@ export type { VersionCheckResult, ValidationResult } from './validate';
 
 export { parseGenUIStream, parseGenUIResponse, readableStreamToIterable } from './parser';
 export type { StreamEvent } from './parser';
+
+export { StateStore } from './state';
+export { applyLocalAction } from './reducers';
+export { LRUCache } from './cache';

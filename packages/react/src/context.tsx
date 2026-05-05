@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Action, GenUIRoot } from '@genui/core';
+import { StateStore } from '@genui/core';
 import type { ComponentRegistry } from './registry';
 
 export interface GenUIContextValue {
@@ -7,6 +8,7 @@ export interface GenUIContextValue {
   onContextRequest?: () => unknown;
   registry: ComponentRegistry;
   currentSpec?: GenUIRoot;
+  stateStore: StateStore;
 }
 
 export const GenUIContext = createContext<GenUIContextValue | null>(null);

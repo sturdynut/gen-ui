@@ -35,7 +35,7 @@ export function Button({ component }: ButtonProps) {
 
 interface InputProps { component: InputComponent }
 export function Input({ component }: InputProps) {
-  const { onAction } = useGenUI();
+  const { onAction, stateStore } = useGenUI();
   const {
     name, label, placeholder, inputType = 'text',
     value: defaultValue = '', validation, action, id, aria,
@@ -46,8 +46,21 @@ export function Input({ component }: InputProps) {
   const handleBlur = useCallback(() => {
     const err = validateField(value, validation);
     setError(err);
-    if (!err && action) onAction(action, { [name]: value });
-  }, [value, validation, action, name, onAction]);
+    if (err) return;
+
+    if (!action) return;
+
+    // local set-state → write to StateStore, no LLM
+    if (action.type === 'local' && action.reducer === 'set-state' && action.path != null) {
+      stateStore.set(action.path, value);
+      return;
+    }
+
+    // llm action on a standalone input (outside a Form) → bubble to host
+    if (action.type === 'llm') {
+      onAction(action, { [name]: value });
+    }
+  }, [value, validation, action, name, onAction, stateStore]);
 
   const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
@@ -83,7 +96,7 @@ export function Input({ component }: InputProps) {
 
 interface SelectProps { component: SelectComponent }
 export function Select({ component }: SelectProps) {
-  const { onAction } = useGenUI();
+  const { onAction, stateStore } = useGenUI();
   const { name, label, options, value: defaultValue = '', validation, action, id, aria } = component;
   const [value, setValue] = useState(defaultValue);
   const [error, setError] = useState<string | null>(null);
@@ -93,8 +106,19 @@ export function Select({ component }: SelectProps) {
     setValue(next);
     const err = validateField(next, validation);
     setError(err);
-    if (!err && action) onAction(action, { [name]: next });
-  }, [validation, action, name, onAction]);
+    if (err) return;
+
+    if (!action) return;
+
+    if (action.type === 'local' && action.reducer === 'set-state' && action.path != null) {
+      stateStore.set(action.path, next);
+      return;
+    }
+
+    if (action.type === 'llm') {
+      onAction(action, { [name]: next });
+    }
+  }, [validation, action, name, onAction, stateStore]);
 
   const selectId = id ?? `genui-select-${name}`;
   const errorId = `${selectId}-error`;
@@ -127,15 +151,32 @@ export function Select({ component }: SelectProps) {
 
 interface ToggleProps { component: ToggleComponent }
 export function Toggle({ component }: ToggleProps) {
-  const { onAction } = useGenUI();
+  const { onAction, stateStore } = useGenUI();
   const { name, label, checked: defaultChecked = false, action, id, aria } = component;
   const [checked, setChecked] = useState(defaultChecked);
 
   const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const next = e.target.checked;
     setChecked(next);
-    if (action) onAction(action, { [name]: next });
-  }, [action, name, onAction]);
+
+    if (!action) return;
+
+    if (action.type === 'local' && action.reducer === 'set-state' && action.path != null) {
+      stateStore.set(action.path, next);
+      return;
+    }
+
+    // toggle-state reducer
+    if (action.type === 'local' && action.reducer === 'toggle-state' && action.path != null) {
+      stateStore.toggle(action.path);
+      return;
+    }
+
+    // llm action on standalone toggle → bubble
+    if (action.type === 'llm') {
+      onAction(action, { [name]: next });
+    }
+  }, [action, name, onAction, stateStore]);
 
   const toggleId = id ?? `genui-toggle-${name}`;
 
@@ -158,7 +199,7 @@ export function Toggle({ component }: ToggleProps) {
 
 interface SliderProps { component: SliderComponent }
 export function Slider({ component }: SliderProps) {
-  const { onAction } = useGenUI();
+  const { onAction, stateStore } = useGenUI();
   const { name, label, min = 0, max = 100, step = 1, value: defaultValue, action, id, aria } = component;
   const [value, setValue] = useState(defaultValue ?? min);
 
@@ -166,9 +207,18 @@ export function Slider({ component }: SliderProps) {
     setValue(Number(e.target.value));
   }, []);
 
-  const handleMouseUp = useCallback(() => {
-    if (action) onAction(action, { [name]: value });
-  }, [action, name, value, onAction]);
+  const handleRelease = useCallback(() => {
+    if (!action) return;
+
+    if (action.type === 'local' && action.reducer === 'set-state' && action.path != null) {
+      stateStore.set(action.path, value);
+      return;
+    }
+
+    if (action.type === 'llm') {
+      onAction(action, { [name]: value });
+    }
+  }, [action, name, value, onAction, stateStore]);
 
   const sliderId = id ?? `genui-slider-${name}`;
 
@@ -184,8 +234,8 @@ export function Slider({ component }: SliderProps) {
         step={step}
         value={value}
         onChange={handleChange}
-        onMouseUp={handleMouseUp}
-        onTouchEnd={handleMouseUp}
+        onMouseUp={handleRelease}
+        onTouchEnd={handleRelease}
         aria-label={aria?.label ?? label}
         aria-valuemin={min}
         aria-valuemax={max}
@@ -214,7 +264,6 @@ export function Form({ component }: FormProps) {
     onAction(action, data);
   }, [action, onAction]);
 
-  // Pass validationStrategy down via data attr so field components can read it
   return (
     <form
       id={id}
