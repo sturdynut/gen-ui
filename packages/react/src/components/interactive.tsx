@@ -97,7 +97,7 @@ export function Input({ component }: InputProps) {
 interface SelectProps { component: SelectComponent }
 export function Select({ component }: SelectProps) {
   const { onAction, stateStore } = useGenUI();
-  const { name, label, options, value: defaultValue = '', validation, action, id, aria } = component;
+  const { name, label, options = [], value: defaultValue = '', validation, action, id, aria } = component;
   const [value, setValue] = useState(defaultValue);
   const [error, setError] = useState<string | null>(null);
 
@@ -254,7 +254,7 @@ export function Slider({ component }: SliderProps) {
 interface FormProps { component: FormComponent }
 export function Form({ component }: FormProps) {
   const { onAction } = useGenUI();
-  const { children, submitLabel = 'Submit', validationStrategy = 'on-submit', action, id, aria } = component;
+  const { children = [], submitLabel = 'Submit', validationStrategy = 'on-submit', action, id, aria } = component;
 
   const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
