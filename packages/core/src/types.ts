@@ -345,7 +345,7 @@ export interface GenUIRoot {
 // ─── Type guards ──────────────────────────────────────────────────────────────
 
 export function isExtensionComponent(c: Component): c is ExtensionComponent {
-  return c.type.startsWith('x:');
+  return typeof c.type === 'string' && c.type.startsWith('x:');
 }
 
 export function isLlmAction(a: Action): a is LlmAction {

@@ -26,6 +26,8 @@ function ComponentGate({ component, index }: ComponentGateProps) {
   // Always call the hook — safe because the path is stable within a render tree.
   const storeValue = useStateValue(visibleIf?.path ?? '__never__');
 
+  // Partial spec during streaming may yield incomplete/null children — skip silently.
+  if (!component || typeof component !== 'object') return null;
   if (visibleIf != null && storeValue !== visibleIf.eq) return null;
 
   return <>{inner(component, index)}</>;
@@ -34,6 +36,7 @@ function ComponentGate({ component, index }: ComponentGateProps) {
 // ─── Inner switch (no hooks) ──────────────────────────────────────────────────
 
 function inner(component: Component, key?: number | string): ReactNode {
+  if (!component.type) return null;
   if (isExtensionComponent(component)) {
     return <Extension key={key} component={component} />;
   }
