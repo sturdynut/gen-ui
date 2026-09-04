@@ -26,9 +26,23 @@ export interface LlmAction {
   context?: ContextStrategy;
 }
 
+/**
+ * Built-in client-side reducers — handled entirely by the StateStore,
+ * no LLM round-trip required.
+ */
+export type LocalReducer = 'set-state' | 'toggle-state' | 'inc-state' | 'dec-state';
+
 export interface LocalAction {
   type: 'local';
-  event: string;
+  /** Legacy free-form event name (e.g. "navigate"). */
+  event?: string;
+  /** Built-in reducer to apply to the StateStore. */
+  reducer?: LocalReducer;
+  /** State path for reducer operations (e.g. "/wizard/step"). */
+  path?: string;
+  /** Value to write for set-state. */
+  value?: unknown;
+  /** Route target for navigate events. */
   target?: string;
 }
 
@@ -72,6 +86,12 @@ export interface AccordionItem {
 interface BaseComponent {
   id?: string;
   aria?: AriaProps;
+  /**
+   * Conditionally render this component. Provide a StateStore path; the
+   * component is mounted only when store.get(path) equals `eq`.
+   * e.g. { "path": "/step", "eq": 2 }
+   */
+  visibleIf?: { path: string; eq: unknown };
 }
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -312,15 +332,20 @@ export type Component =
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export interface GenUIRoot {
-  /** Semver string, always a 1.x value in this renderer generation */
   genui: string;
   root: Component;
+  /**
+   * Initial StateStore values. Keys are slash-prefixed paths (e.g. "/step").
+   * The renderer creates a StateStore from this on mount; local reducers mutate
+   * it without any LLM call.
+   */
+  state?: Record<string, unknown>;
 }
 
 // ─── Type guards ──────────────────────────────────────────────────────────────
 
 export function isExtensionComponent(c: Component): c is ExtensionComponent {
-  return c.type.startsWith('x:');
+  return typeof c.type === 'string' && c.type.startsWith('x:');
 }
 
 export function isLlmAction(a: Action): a is LlmAction {

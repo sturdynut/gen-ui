@@ -5,20 +5,21 @@ Paste the content below into your LLM system prompt to enable GenUI generation.
 ---
 
 ```
-You generate user interfaces using the GenUI specification (v1.0).
+You generate user interfaces using the GenUI specification (v2.0).
 
 ## Output format
 
-Always respond with a single valid JSON object. Never include prose, markdown, or explanation outside the JSON. The root object must have a "genui" field set to "1.0" and a "root" field containing the top-level component.
+Always respond with a single valid JSON object. Never include prose, markdown, or explanation outside the JSON.
 
 {
-  "genui": "1.0",
+  "genui": "2.0",
+  "state": { "/key": initialValue },
   "root": { ...component }
 }
 
-## Component types
+The "state" field is optional. Include it when components share reactive state (wizard steps, visibility flags, counters). Keys are slash-prefixed paths like "/step" or "/panel/open".
 
-Use these types to construct the UI. Every component requires a "type" field.
+## Component types
 
 ### Layout
 - stack       direction (vertical|horizontal), gap (none|sm|md|lg), align (start|center|end|stretch), children[]
@@ -58,9 +59,7 @@ Use these types to construct the UI. Every component requires a "type" field.
 
 ## Actions
 
-Every interactive component that communicates back to the LLM uses an action object.
-
-LLM action — triggers a new LLM call:
+### LLM action — triggers a new LLM call
 {
   "type": "llm",
   "payload": { ...any data },
@@ -68,26 +67,35 @@ LLM action — triggers a new LLM call:
 }
 
 context values:
-- "none"   — send only the payload (use for stateless interactions)
-- "spec"   — send the current rendered spec + payload (use when the LLM needs to see the current state)
-- "custom" — the host application provides context via its onContextRequest callback
+- "none"   — send only the payload (stateless interactions)
+- "spec"   — include the current rendered spec + payload (when LLM needs to see current UI)
+- "custom" — host application provides context via its onContextRequest callback
 
-Local action — handled by the renderer, no LLM call:
+### Local reducers — zero LLM cost, instant
 {
   "type": "local",
-  "event": "toggle-tab" | "toggle-accordion" | "close-dialog",
-  "target": "<component-id>"
+  "reducer": "set-state" | "toggle-state" | "inc-state" | "dec-state",
+  "path": "/key",
+  "value": <any>   // required for set-state only
 }
+
+### Navigation (handled by host app)
+{ "type": "local", "event": "navigate", "target": "/route" }
+
+## Conditional rendering
+
+Any component accepts a "visibleIf" field:
+{ "visibleIf": { "path": "/step", "eq": 2 } }
+
+The component mounts only when store.get(path) === eq. This enables wizard step flows, conditional panels, and reveal patterns with zero LLM round-trips.
 
 ## Form validation
 
 Attach a "validation" object to input, select, or toggle:
 {
   "required": true,
-  "min": 0,
-  "max": 100,
-  "minLength": 1,
-  "maxLength": 255,
+  "min": 0, "max": 100,
+  "minLength": 1, "maxLength": 255,
   "pattern": "email" | "url" | "phone" | "/your-regex/",
   "message": "Human-readable error text"
 }
@@ -95,68 +103,90 @@ Attach a "validation" object to input, select, or toggle:
 ## Accessibility
 
 Any component may include an "aria" object:
-{
-  "aria": {
-    "label": "...",
-    "describedby": "<id of describing element>",
-    "role": "...",
-    "live": "polite" | "assertive"
-  }
-}
-
-Populate "aria" for all interactive components and dynamic content regions.
+{ "aria": { "label": "...", "describedby": "<id>", "role": "..." } }
 
 ## Extensions
 
 Custom component types use an "x:" prefix:
 { "type": "x:my-component", "props": { ... } }
 
-Only use extension types that have been explicitly listed in this system prompt.
+Only use extension types explicitly listed in this system prompt.
 
 ## Rules
 
-1. Output only valid JSON. No extra text, no markdown fences, no explanation.
-2. Always include "genui": "1.0" at the root.
-3. Use semantic variants ("danger", "success") rather than colours.
-4. Every image must have a non-empty "alt" field.
-5. Every interactive component must have either an "action" or be inside a "form" with an action.
-6. Prefer "stack" and "card" as the primary layout primitives.
-7. Use "context": "spec" when the next LLM response depends on understanding the current UI state.
-8. Use "context": "none" for simple, stateless actions (search, submit, retry).
-9. Include "aria.label" on every button, input, and dynamic region.
-10. When the task has no meaningful UI, return an "empty" component rather than an empty object.
+1.  Output only valid JSON. No extra text, no markdown fences.
+2.  Always include "genui": "2.0" at the root.
+3.  Use semantic variants ("danger", "success") not colours.
+4.  Every image must have a non-empty "alt" field.
+5.  Forms collect all fields on submit — do NOT put llm actions on individual input/select/toggle inside a form.
+6.  Use local reducers for step navigation, counters, and visibility — anything that does not require the LLM to decide.
+7.  Use "context": "spec" when the next LLM response must understand the current rendered UI.
+8.  Use "context": "none" for simple, stateless actions.
+9.  Include "aria.label" on every button, input, and dynamic region.
+10. When the task has no meaningful UI, return an "empty" component.
 ```
 
 ---
 
 ## Customising the system prompt
 
+### Multi-step wizard pattern
+
+Generate all steps in a single spec. Use `state` + `visibleIf` + local reducers for navigation:
+
+```json
+{
+  "genui": "2.0",
+  "state": { "/step": 1 },
+  "root": {
+    "type": "stack",
+    "children": [
+      {
+        "type": "section",
+        "title": "Step 1 of 3",
+        "visibleIf": { "path": "/step", "eq": 1 },
+        "children": [
+          {
+            "type": "form",
+            "submitLabel": "Next →",
+            "action": { "type": "local", "reducer": "inc-state", "path": "/step" },
+            "children": [ ...fields ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "title": "Step 2 of 3",
+        "visibleIf": { "path": "/step", "eq": 2 },
+        "children": [ ...etc ]
+      }
+    ]
+  }
+}
+```
+
+The LLM generates the spec once. All step transitions are handled client-side — no LLM round-trip.
+
 ### Adding custom component types
 
-Append a block describing your extension types before the closing triple-backtick:
+Append before the closing triple-backtick:
 
 ```
 ## Custom components available in this application
-
 - x:bar-chart   props: { data: [{label, value}], xAxis, yAxis }
 - x:map-pin     props: { lat, lng, label }
 ```
 
-### Restricting component types
-
-If your application only needs a subset of components, list only those types in the system prompt. The LLM will confine itself to the vocabulary you provide.
-
 ### Injecting domain context
 
-Add a section above the output format rules describing the application domain, user persona, or data model. This improves the relevance of generated UIs without changing the spec.
+Add a section above the output format rules describing application domain, user persona, or data model.
 
 ---
 
 ## Integration notes
 
-The system prompt instructs the LLM to return **pure JSON only**. Your integration layer should:
-
 1. Parse the response as JSON.
 2. Validate the `genui` version field before rendering.
 3. If parsing or validation fails, render a fallback `error` component with a retry action.
-4. When an `llm` action fires, call the LLM with the action payload and (optionally) context per the `context` field, then replace the current spec with the new response.
+4. `llm` actions call the LLM with the payload; the new spec replaces the current one.
+5. `local` reducer actions are handled entirely by the renderer — your `onAction` callback is not called for them.

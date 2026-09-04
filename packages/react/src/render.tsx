@@ -8,8 +8,35 @@ import { Button, Input, Select, Toggle, Slider, Form } from './components/intera
 import { Card, List, Table, Tabs, Accordion, Dialog } from './components/composite';
 import { Spinner, Empty, ErrorDisplay } from './components/state';
 import { Extension } from './components/extension';
+import { useStateValue } from './hooks/useStateValue';
 
-export function renderComponent(component: Component, key?: number | string): ReactNode {
+// ─── Visibility gate ──────────────────────────────────────────────────────────
+
+interface ComponentGateProps {
+  component: Component;
+  index?: number | string;
+}
+
+/**
+ * Wraps every component render. Checks `visibleIf` against the StateStore
+ * and returns null (unmounts) when the condition is not met.
+ */
+function ComponentGate({ component, index }: ComponentGateProps) {
+  const visibleIf = (component as { visibleIf?: { path: string; eq: unknown } }).visibleIf;
+  // Always call the hook — safe because the path is stable within a render tree.
+  const storeValue = useStateValue(visibleIf?.path ?? '__never__');
+
+  // Partial spec during streaming may yield incomplete/null children — skip silently.
+  if (!component || typeof component !== 'object') return null;
+  if (visibleIf != null && storeValue !== visibleIf.eq) return null;
+
+  return <>{inner(component, index)}</>;
+}
+
+// ─── Inner switch (no hooks) ──────────────────────────────────────────────────
+
+function inner(component: Component, key?: number | string): ReactNode {
+  if (!component.type) return null;
   if (isExtensionComponent(component)) {
     return <Extension key={key} component={component} />;
   }
@@ -56,4 +83,10 @@ export function renderComponent(component: Component, key?: number | string): Re
       );
     }
   }
+}
+
+// ─── Public entry point ───────────────────────────────────────────────────────
+
+export function renderComponent(component: Component, key?: number | string): ReactNode {
+  return <ComponentGate key={key} component={component} index={key} />;
 }

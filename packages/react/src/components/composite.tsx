@@ -49,7 +49,7 @@ export function Card({ component }: CardProps) {
 
 interface ListProps { component: ListComponent }
 export function List({ component }: ListProps) {
-  const { ordered = false, items, id, aria } = component;
+  const { ordered = false, items = [], id, aria } = component;
   const Tag = ordered ? 'ol' : 'ul';
   return (
     <Tag id={id} className="genui-list" aria-label={aria?.label}>
@@ -67,7 +67,7 @@ export function List({ component }: ListProps) {
 interface TableProps { component: TableComponent }
 export function Table({ component }: TableProps) {
   const { onAction } = useGenUI();
-  const { columns, rows, action, id, aria } = component;
+  const { columns = [], rows = [], action, id, aria } = component;
   const clickable = !!action;
 
   const handleRowClick = useCallback((row: Record<string, string | number>) => {
@@ -121,7 +121,7 @@ export function Table({ component }: TableProps) {
 
 interface TabsProps { component: TabsComponent }
 export function Tabs({ component }: TabsProps) {
-  const { defaultTab = 0, items, id, aria } = component;
+  const { defaultTab = 0, items = [], id, aria } = component;
   const [activeTab, setActiveTab] = useState(defaultTab);
   const activeItem = items[activeTab];
 
@@ -148,7 +148,7 @@ export function Tabs({ component }: TabsProps) {
         id={`${id ?? 'genui-tabs'}-panel-${activeTab}`}
         aria-labelledby={`${id ?? 'genui-tabs'}-tab-${activeTab}`}
       >
-        {activeItem?.children.map((child: Component, i) => renderComponent(child, i))}
+        {activeItem?.children?.map((child: Component, i) => renderComponent(child, i))}
       </div>
     </div>
   );
@@ -158,7 +158,7 @@ export function Tabs({ component }: TabsProps) {
 
 interface AccordionProps { component: AccordionComponent }
 export function Accordion({ component }: AccordionProps) {
-  const { items, id, aria } = component;
+  const { items = [], id, aria } = component;
   const [open, setOpen] = useState<Set<number>>(
     () => new Set(items.map((item, i) => item.defaultOpen ? i : -1).filter(i => i >= 0))
   );
@@ -193,7 +193,7 @@ export function Accordion({ component }: AccordionProps) {
             </button>
             {isOpen && (
               <div id={contentId} className="genui-accordion__content" role="region" aria-labelledby={triggerId}>
-                {item.children.map((child: Component, ci) => renderComponent(child, ci))}
+                {(item.children ?? []).map((child: Component, ci) => renderComponent(child, ci))}
               </div>
             )}
           </div>

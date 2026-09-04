@@ -3,7 +3,7 @@ import { renderComponent } from '../render';
 
 interface StackProps { component: StackComponent }
 export function Stack({ component }: StackProps) {
-  const { direction = 'vertical', gap = 'md', align = 'start', children, id, aria } = component;
+  const { direction = 'vertical', gap = 'md', align = 'start', children = [], id, aria } = component;
   return (
     <div
       id={id}
@@ -22,7 +22,7 @@ export function Stack({ component }: StackProps) {
 
 interface GridProps { component: GridComponent }
 export function Grid({ component }: GridProps) {
-  const { columns = 'auto', gap = 'md', children, id, aria } = component;
+  const { columns = 'auto', gap = 'md', children = [], id, aria } = component;
   const cols = typeof columns === 'number' ? columns : undefined;
   return (
     <div
@@ -40,7 +40,7 @@ export function Grid({ component }: GridProps) {
 
 interface SectionProps { component: SectionComponent }
 export function Section({ component }: SectionProps) {
-  const { title, description, children, id, aria } = component;
+  const { title, description, children = [], id, aria } = component;
   return (
     <section
       id={id}

@@ -11,17 +11,9 @@ export type StreamEvent =
 // ─── Streaming parser ─────────────────────────────────────────────────────────
 
 /**
- * Consumes an async iterable of string chunks (e.g. from the Anthropic SDK or
- * the OpenAI SDK streaming API) and yields StreamEvents.
- *
- * The LLM is expected to return a single JSON object as its entire response.
- * Chunks are accumulated until the stream ends, then parsed and validated.
- *
- * Usage:
- *   for await (const event of parseGenUIStream(stream)) {
- *     if (event.type === 'complete') render(event.spec);
- *     if (event.type === 'error')    showError(event.message);
- *   }
+ * Consumes an async iterable of string chunks and yields StreamEvents.
+ * Chunks are accumulated; on each chunk a partial parse is attempted so
+ * callers can render progressively before the stream ends.
  */
 export async function* parseGenUIStream(
   stream: AsyncIterable<string>
@@ -54,6 +46,92 @@ export function parseGenUIResponse(text: string): ValidationResult {
     return { ok: false, errors: ['Response is not valid JSON'] };
   }
   return validateSpec(parsed);
+}
+
+// ─── Partial JSON parser ──────────────────────────────────────────────────────
+
+/**
+ * Best-effort parser for incomplete JSON strings produced during LLM streaming.
+ * Closes any unclosed strings, objects, and arrays to produce a parseable
+ * JSON string, then validates it as a GenUIRoot.
+ *
+ * Returns null when:
+ * - The buffer doesn't yet contain the opening `{`
+ * - The partial result doesn't have at least `genui` + `root.type` fields
+ */
+export function tryParsePartial(text: string): GenUIRoot | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  const src = text.slice(start);
+
+  // Try the full buffer as-is first (fast path for complete JSON)
+  try {
+    const r = JSON.parse(src);
+    if (isMinimalSpec(r)) return r as GenUIRoot;
+  } catch { /* fall through */ }
+
+  // Walk the buffer tracking the nesting stack
+  type Frame = '{' | '[' | '"';
+  const stack: Frame[] = [];
+  let i = 0;
+  let escaped = false;
+
+  while (i < src.length) {
+    const c = src[i]!;
+
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
+    }
+
+    if (stack[stack.length - 1] === '"') {
+      if (c === '\\') escaped = true;
+      else if (c === '"') stack.pop();
+      i++;
+      continue;
+    }
+
+    switch (c) {
+      case '"': stack.push('"'); break;
+      case '{': stack.push('{'); break;
+      case '[': stack.push('['); break;
+      case '}': if (stack[stack.length - 1] === '{') stack.pop(); break;
+      case ']': if (stack[stack.length - 1] === '[') stack.pop(); break;
+    }
+    i++;
+  }
+
+  // Build the closing suffix in reverse stack order
+  let suffix = '';
+  for (let j = stack.length - 1; j >= 0; j--) {
+    const frame = stack[j]!;
+    if (frame === '"') suffix += '"';
+    else if (frame === '{') suffix += '}';
+    else if (frame === '[') suffix += ']';
+  }
+
+  // Strip trailing commas that would make the JSON invalid after closing
+  const candidate = src.replace(/,(\s*)$/, '$1') + suffix;
+
+  try {
+    const r = JSON.parse(candidate);
+    if (isMinimalSpec(r)) return r as GenUIRoot;
+  } catch { /* not parseable yet */ }
+
+  return null;
+}
+
+function isMinimalSpec(obj: unknown): boolean {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const o = obj as Record<string, unknown>;
+  return (
+    typeof o['genui'] === 'string' &&
+    typeof o['root'] === 'object' &&
+    o['root'] !== null &&
+    typeof (o['root'] as Record<string, unknown>)['type'] === 'string'
+  );
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────────
@@ -98,10 +176,6 @@ function* finalise(buffer: string): Generator<StreamEvent> {
 
 // ─── Utility: adapt fetch ReadableStream ─────────────────────────────────────
 
-/**
- * Converts a web ReadableStream<Uint8Array> (e.g. from fetch()) into the
- * AsyncIterable<string> that parseGenUIStream expects.
- */
 export async function* readableStreamToIterable(
   stream: ReadableStream<Uint8Array>
 ): AsyncGenerator<string> {

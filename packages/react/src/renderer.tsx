@@ -1,22 +1,18 @@
-import type { ReactNode, CSSProperties } from 'react';
+import { useMemo, type ReactNode, type CSSProperties } from 'react';
 import type { Action, GenUIRoot } from '@genui/core';
+import { StateStore, applyLocalAction } from '@genui/core';
 import { GenUIContext } from './context';
 import { ComponentRegistry, defaultRegistry } from './registry';
 import { renderComponent } from './render';
 import { Spinner } from './components/state';
 
 export interface GenUIRendererProps {
-  /** Parsed and validated GenUI spec. Pass null to render nothing. */
   spec: GenUIRoot | null;
 
   /**
-   * Called whenever an `llm` action is dispatched.
-   * The host app is responsible for calling the LLM and updating `spec`.
-   *
-   * @param action  The dispatched action
-   * @param formData  Field values when the action originates from a form submit
-   * @param contextPayload  The result of onContextRequest (if context === 'custom')
-   *                        or the current spec (if context === 'spec')
+   * Called for `llm` actions and unhandled `local` actions (for host observability).
+   * Local reducer actions (set-state, toggle-state, inc-state, dec-state) are
+   * applied to the StateStore without reaching this callback.
    */
   onAction: (
     action: Action,
@@ -24,25 +20,10 @@ export interface GenUIRendererProps {
     contextPayload?: unknown
   ) => void;
 
-  /**
-   * Called when an action has context === 'custom'.
-   * The return value is passed as contextPayload to onAction.
-   */
   onContextRequest?: () => unknown;
-
-  /** Custom component registry. Defaults to the shared defaultRegistry. */
   registry?: ComponentRegistry;
-
-  /**
-   * Shown while status === 'streaming' (i.e. spec is null but a stream is in flight).
-   * Defaults to a spinner.
-   */
   loadingFallback?: ReactNode;
-
-  /** Additional class name applied to the root container. */
   className?: string;
-
-  /** Additional inline styles applied to the root container. */
   style?: CSSProperties;
 }
 
@@ -55,20 +36,28 @@ export function GenUIRenderer({
   className = '',
   style,
 }: GenUIRendererProps) {
+  // Re-create the store only when the spec's state definition changes.
+  // Shallow-serialize spec.state so useMemo doesn't re-run on identical objects.
+  const stateKey = spec?.state ? JSON.stringify(spec.state) : '';
+  const stateStore = useMemo(
+    () => new StateStore(spec?.state ?? undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stateKey]
+  );
+
   const handleAction = (action: Action, formData?: Record<string, unknown>) => {
     if (action.type === 'local') {
-      // Local actions are fully handled by the individual components.
-      // The host app receives them here for optional observability.
+      // Try to apply a built-in reducer first. If handled, skip the LLM.
+      const handled = applyLocalAction(stateStore, action);
+      if (handled) return;
+      // Unhandled local actions (e.g. "navigate") bubble to the host.
       onAction(action, formData);
       return;
     }
 
     let contextPayload: unknown;
-    if (action.context === 'spec') {
-      contextPayload = spec;
-    } else if (action.context === 'custom') {
-      contextPayload = onContextRequest?.();
-    }
+    if (action.context === 'spec') contextPayload = spec;
+    else if (action.context === 'custom') contextPayload = onContextRequest?.();
 
     onAction(action, formData, contextPayload);
   };
@@ -79,9 +68,10 @@ export function GenUIRenderer({
     <GenUIContext.Provider
       value={{
         onAction: handleAction,
-        onContextRequest,
+        ...(onContextRequest ? { onContextRequest } : {}),
+        ...(spec ? { currentSpec: spec } : {}),
         registry,
-        currentSpec: spec ?? undefined,
+        stateStore,
       }}
     >
       <div className={containerClass} style={style}>
