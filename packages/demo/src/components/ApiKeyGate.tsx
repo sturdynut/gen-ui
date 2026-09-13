@@ -34,9 +34,9 @@ export function ApiKeyGate({ onKey }: ApiKeyGateProps) {
 
         <h1 className="gate-title">Enter your Anthropic API key</h1>
         <p className="gate-subtitle">
-          Your key is stored only in <code>localStorage</code> and sent directly to
-          the Anthropic API via a serverless proxy. It is never logged or stored
-          server-side.
+          Your key is stored only in <code>localStorage</code> and sent from this
+          browser straight to the Anthropic API. It never reaches our servers and
+          is never logged.
         </p>
 
         <form onSubmit={handleSubmit} className="gate-form">

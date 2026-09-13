@@ -1,0 +1,87 @@
+/* Styles for the screenshot harness only (hero.tsx). */
+
+.hero {
+  display: grid;
+  grid-template-columns: 460px 40px 1fr;
+  align-items: start;
+  gap: 0;
+  padding: 28px;
+  background: #eef2f7;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.hero-pane {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The spec is longer than the frame; fade it out rather than crop hard. */
+.hero-pane--code .hero-code-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.hero-pane--code .hero-code-wrap::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 90px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff);
+}
+
+.hero-pane-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.hero-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.hero-dot--json { background: #f59e0b; }
+.hero-dot--ui { background: #10b981; }
+
+.hero-code {
+  margin: 0;
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.hero-ui-wrap {
+  flex: 1;
+  overflow: hidden;
+}
+
+.hero-arrow {
+  align-self: center;
+  text-align: center;
+  font-size: 1.5rem;
+  color: #94a3b8;
+}
+
+.hero-ui { padding: 20px; }
