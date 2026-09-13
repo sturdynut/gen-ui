@@ -4,6 +4,7 @@ import { useChat } from '../hooks/useChat';
 import { DASHBOARD_PROMPT } from '../prompts';
 import { SpecViewer } from '../components/SpecViewer';
 import { PromptChips } from '../components/PromptChips';
+import { CostMeter } from '../components/CostMeter';
 
 const SUGGESTIONS = [
   'Show me a Q4 performance summary',
@@ -66,7 +67,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ apiKey }: DashboardProps) {
-  const { spec, status, error, send, handleAction, reset } = useChat({
+  const { spec, status, error, usage, sessionUsage, send, handleAction, reset } = useChat({
     systemPrompt: DASHBOARD_PROMPT,
     apiKey,
   });
@@ -124,6 +125,8 @@ export function Dashboard({ apiKey }: DashboardProps) {
         </div>
 
         {error && <div className="demo-error" role="alert"><strong>Error:</strong> {error}</div>}
+
+        <CostMeter usage={usage} sessionUsage={sessionUsage} />
 
         <div className="demo-data-note">
           <p className="demo-data-note-label">📋 Data context</p>

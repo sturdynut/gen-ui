@@ -70,3 +70,4 @@ export type { StreamEvent } from './parser';
 export { StateStore } from './state';
 export { applyLocalAction } from './reducers';
 export { LRUCache } from './cache';
+export { summarizeSpec, summarizeSerializedSpec } from './summarize';
