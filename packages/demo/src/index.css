@@ -285,6 +285,67 @@ code {
   margin-bottom: 4px;
 }
 
+/* ─── Cost meter ─────────────────────────────────────────────────────────────── */
+
+.cost-meter {
+  margin-top: 1rem;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.cost-meter-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cost-meter-row--total {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cost-meter-label { color: #64748b; }
+
+.cost-meter-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #334155;
+}
+
+.cost-meter-free { color: #059669; }
+
+.cost-meter-bars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.cost-chip {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-chip--out { background: #fee2e2; color: #b91c1c; }
+.cost-chip--cache { background: #dcfce7; color: #15803d; }
+
+.cost-meter-note {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
 /* ─── Error ──────────────────────────────────────────────────────────────────── */
 
 .demo-error {

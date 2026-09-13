@@ -2,6 +2,7 @@ import { GenUIRenderer } from '@genui/react';
 import { useChat } from '../hooks/useChat';
 import { WIZARD_PROMPT } from '../prompts';
 import { SpecViewer } from '../components/SpecViewer';
+import { CostMeter } from '../components/CostMeter';
 
 const WELCOME_SPEC = {
   genui: '2.0' as const,
@@ -94,7 +95,7 @@ interface WizardProps {
 }
 
 export function Wizard({ apiKey }: WizardProps) {
-  const { spec, status, error, handleAction, reset } = useChat({
+  const { spec, status, error, usage, sessionUsage, handleAction, reset } = useChat({
     systemPrompt: WIZARD_PROMPT,
     apiKey,
   });
@@ -136,6 +137,8 @@ export function Wizard({ apiKey }: WizardProps) {
         )}
 
         {error && <div className="demo-error" role="alert"><strong>Error:</strong> {error}</div>}
+
+        <CostMeter usage={usage} sessionUsage={sessionUsage} />
 
         <div className="demo-data-note">
           <p className="demo-data-note-label">🧙 Architecture</p>

@@ -5,6 +5,7 @@ import { useChat } from '../hooks/useChat';
 import { CHAT_PROMPT } from '../prompts';
 import { SpecViewer } from '../components/SpecViewer';
 import { PromptChips } from '../components/PromptChips';
+import { CostMeter } from '../components/CostMeter';
 
 const SUGGESTIONS = [
   'Show me a recipe for chocolate chip cookies',
@@ -96,7 +97,7 @@ interface ChatProps {
 
 export function Chat({ apiKey }: ChatProps) {
   const navigate = useNavigate();
-  const { spec, status, error, send, handleAction, reset } = useChat({
+  const { spec, status, error, usage, sessionUsage, send, handleAction, reset } = useChat({
     systemPrompt: CHAT_PROMPT,
     apiKey,
   });
@@ -183,6 +184,8 @@ export function Chat({ apiKey }: ChatProps) {
             <strong>Error:</strong> {error}
           </div>
         )}
+
+        <CostMeter usage={usage} sessionUsage={sessionUsage} />
       </aside>
 
       {/* Right panel — output */}
